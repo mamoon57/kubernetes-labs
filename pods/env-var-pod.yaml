@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-var-pod
+  labels:
+    app: nginx
+    type: environment-variable
+spec:
+  containers:
+  - name: env-nginx
+    image: nginx:latest
+    env:
+    - name: ENV_VAR
+      value: "Hello, World!"
+    ports:
+    - containerPort: 80
