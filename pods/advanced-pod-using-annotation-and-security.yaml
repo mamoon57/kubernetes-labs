@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: advanced-pod
+  labels:
+    app: nginx
+    tier: backend
+  annotations:
+    owner: "ali-devops"
+    purpose: "learning lifecycle and securityContext"
+spec:
+  containers:
+  - name: secure-nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/sh", "-c", "echo 'Gracefully shutting down...' && sleep 5"]
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"

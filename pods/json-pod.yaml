@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: json-pod
+  labels:
+    app: nginx
+    purpose: structured-logging
+spec:
+  containers:
+  - name: json-nginx
+    image: nginx:latest
+    env:
+    - name: NGINX_LOG_FORMAT
+      value: '{"time": "$time_iso8601", "remote_addr": "$remote_addr", "request": "$request", "status": "$status", "body_bytes_sent": "$body_bytes_sent", "http_referer": "$http_referer", "http_user_agent": "$http_user_agent"}'
+    ports:
+    - containerPort: 80
