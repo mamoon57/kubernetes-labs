@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset-with-volume
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: my-volume
+      volumes:
+      - name: my-volume
+        persistentVolumeClaim:
+          claimName: my-pvc
+
+This YAML file defines a ReplicaSet that ensures three replicas of a pod running an Nginx container are maintained. Each pod mounts a volume at `/usr/share/nginx/html`, which is backed by a PersistentVolumeClaim named `my-pvc`. This setup allows for persistent storage, making it suitable for applications that require data retention across pod restarts.

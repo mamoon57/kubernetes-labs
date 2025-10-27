@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: replicaset-demo
+---
+# Optional StorageClass for "cloud" PVC.
+# Replace provisioner and parameters with your cloud's CSI/driver (AWS EBS, GCE PD, AzureDisk, etc.)
+# If your cluster already has a suitable StorageClass, you can remove or ignore this object and
+# use that StorageClass name in the PVC below.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cloud-storage
+provisioner: placeholder.provisioner.io   # <--  e.g. ebs.csi.aws.com
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  type: gp2
+---
+# PersistentVolume for NFS (static PV). Fill in your NFS server and path.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+  labels:
+    pv-type: nfs
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-static
+  nfs:
+    server: <NFS_SERVER_IP_OR_HOSTNAME>  
+    path: /export/path
+---
+# PVC that will bind to the static NFS PV above.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+  namespace: replicaset-demo
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  volumeName: nfs-pv
+  storageClassName: nfs-static
+---
+# PVC requesting cloud-backed storage via the StorageClass above (dynamic provision).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloud-pvc
+  namespace: replicaset-demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: cloud-storage
+---
+# ReplicaSet manifest that mounts emptyDir, the NFS PVC and the cloud PVC.
+# It runs multiple containers, each using a different volume.
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: multi-vol-replicaset
+  namespace: replicaset-demo
+  labels:
+    app: multi-vol
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: multi-vol
+  template:
+    metadata:
+      labels:
+        app: multi-vol
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker: "true"
+      containers:
+        - name: web-emptydir
+          image: nginx:stable
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: scratch
+              mountPath: /usr/share/nginx/html  # emptyDir backing nginx content
+        - name: worker-nfs
+          image: busybox:1.36
+          command: ["sh", "-c", "echo NFS mount test > /mnt/nfs/hello.txt; sleep 3600"]
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+          volumeMounts:
+            - name: nfs-volume
+              mountPath: /mnt/nfs
+        - name: sidecar-cloud
+          image: busybox:1.36
+          command: ["sh", "-c", "ls -la /data || true; echo cloud volume test > /data/cloud.txt; sleep 3600"]
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+          volumeMounts:
+            - name: cloud-volume
+              mountPath: /data
+      volumes:
+        - name: scratch
+          emptyDir: {}   # ephemeral per-pod storage
+        - name: nfs-volume
+          persistentVolumeClaim:
+            claimName: nfs-pvc
+        - name: cloud-volume
+          persistentVolumeClaim:
+            claimName: cloud-pvc

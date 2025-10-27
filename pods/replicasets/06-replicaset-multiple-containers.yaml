@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: multi-container-replicaset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: multi-container-app
+  template:
+    metadata:
+      labels:
+        app: multi-container-app
+    spec:
+      containers:
+      - name: app-container-1
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+      - name: app-container-2
+        image: redis:latest
+        ports:
+        - containerPort: 6379
