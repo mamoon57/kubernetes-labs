@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: deploy-examples
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-pvc
+  namespace: deploy-examples
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard  # change per cluster
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: volumes-deployment
+  namespace: deploy-examples
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vol-app
+  template:
+    metadata:
+      labels:
+        app: vol-app
+    spec:
+      containers:
+        - name: web
+          image: nginx:stable
+          volumeMounts:
+            - name: scratch
+              mountPath: /usr/share/nginx/html
+            - name: pvc-data
+              mountPath: /data
+        - name: helper
+          image: busybox:1.36
+          command: ["sh", "-c", "ls -la /mnt/host; sleep 3600"]
+          volumeMounts:
+            - name: host
+              mountPath: /mnt/host
+      volumes:
+        - name: scratch
+          emptyDir: {}
+        - name: host
+          hostPath:
+            path: /var/log
+            type: Directory
+        - name: pvc-data
+          persistentVolumeClaim:
+            claimName: app-pvc
