@@ -12,4 +12,4 @@ YAML examples for core K8s objects — pods, replica sets, deployments. Each fol
 
 Good for interview prep or onboarding someone new to K8s.
 
-**Mamoon Idrees** · [LinkedIn](https://www.linkedin.com/in/mamoon-idrees)
+**Mamoon Idrees** · [LinkedIn](https://www.linkedin.com/in/mamoon-idrees) · mamoon.idrees5@gmail.com
